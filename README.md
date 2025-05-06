@@ -6,7 +6,8 @@ Bu repoda üç farklı MQTT ile veri gönderme/alma yöntemi yer alıyor:
 - **method2/**: Yöntem 2 açıklaması
 - **method3/**: Yöntem 3 açıklaması
 
-Nasıl kullanılır:
-1. İlgili klasöre girin: 
-2. Gerekli bağımlılıkları yükleyin.
-3.  vb.
+Nasıl kullanılır Local de başlatmak Python ile
+1. python3 -m venv venv
+2. source venv/bin/activate        # macOS/Linux
+3. pip install paho-mqtt
+4. python ingest.py
