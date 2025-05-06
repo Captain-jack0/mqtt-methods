@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+      - ./mosquitto_config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  mqtt-consumer:
+    build: .
+    depends_on:
+      - mosquitto
+    environment:
+      - BROKER_HOST=mosquitto
+      - BROKER_PORT=1883
+      - TOPIC=sensors/+/data
+    # kodları anında görebilmek için:
+    volumes:
+      - .:/app
+    # Konsola logs görmek için
+    tty: true
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:
+
