@@ -1,28 +1,64 @@
 version: "3.8"
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
-      - "1883:1883"
+      - "192.168.1.59:1883:1883" 
     volumes:
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
-      - ./mosquitto_config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto_config:/mosquitto/config
 
-  mqtt-consumer:
-    build: .
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    environment:
+      # Listen on 0.0.0.0 inside the container
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      # Tell clients (like your API) to reach Kafka via the DNS name "kafka"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # Map listener names to security protocols
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      # Zookeeper connection
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # Single‐node replication
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingest
     depends_on:
       - mosquitto
+      - kafka
     environment:
       - BROKER_HOST=mosquitto
       - BROKER_PORT=1883
-      - TOPIC=sensors/+/data
-    # kodları anında görebilmek için:
-    volumes:
-      - .:/app
-    # Konsola logs görmek için
-    tty: true
+      - TOPIC=sensors/spo2/data
+      - KAFKA_BOOTSTRAP=kafka:9092
+      - KAFKA_TOPIC=raw-sensor-data
 
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+    ports:
+      - "3000:3000"
+    environment:
+      - KAFKA_BROKERS=kafka:9092
 volumes:
   mosquitto-data:
   mosquitto-log:
